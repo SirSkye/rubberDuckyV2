@@ -2,8 +2,7 @@ from pathlib import Path
 
 from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 import ollama
-
-client = ollama.Client()
+from RealtimeSTT import AudioToTextRecorder
 
 class MainW(Tk):
     def __init__(self, parent):
@@ -13,6 +12,8 @@ class MainW(Tk):
         self.geometry("816x529")
         self.configure(bg = "#FFFFFF")    
         self.resizable(False, False)
+        self.recorder = AudioToTextRecorder()
+        self.client = ollama.Client()
 
     def relative_to_assets(self, path: str) -> Path:
         OUTPUT_PATH = Path(__file__).parent
