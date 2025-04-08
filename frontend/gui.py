@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
+from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage, END
 import ollama
 from RealtimeSTT import AudioToTextRecorder
 from multiprocessing import Process, Pipe
@@ -16,7 +16,7 @@ class MainW(Tk):
         self.configure(bg = "#FFFFFF")    
         self.resizable(False, False)
         self.pipe_to_recorder, reciever = Pipe()
-        # self.client = ollama.Client()
+        self.client = ollama.Client("localhost:11434")
         self.recorder_process = Process(target=start_speech_to_text, args=(reciever,))
         self.recorder_process.start()
         self.recording = False
@@ -52,7 +52,7 @@ class MainW(Tk):
             178.0,
             437.0,
             569.0,
-            fill="#000000",
+            fill="#FFFFFF",
             outline="")
 
         canvas.create_rectangle(
@@ -79,6 +79,19 @@ class MainW(Tk):
             text="You Said....",
             fill="#000000",
             font=("Inter", 12 * -1)
+        )
+
+        self.entry_1 = Text(
+            bd = 0,
+            bg = "#FFFFFF",
+            fg = "#FFFFFF",
+            highlightthickness=0
+        )
+        self.entry_1.place(
+            x = 37.00,
+            y = 178.00,
+            width=388.0,
+            height=389.0
         )
 
         canvas.create_rectangle(
@@ -121,6 +134,14 @@ class MainW(Tk):
                 self.recording = True
             else:
                 self.pipe_to_recorder.send(False)
+                while not self.pipe_to_recorder.poll():
+                    pass
+                message = self.pipe_to_recorder.recv()
+                print("RECIEVED", message)
+                response = self.client.generate(model="rubberduck", prompt="Study guide: " + str(self.entry_1.get("1.0", END)) + " Student: " + message)
+                print(response)
+
+                
         self.button_image_1 = PhotoImage(
             file=self.relative_to_assets("button_1.png"))
         recorder_button = Button(

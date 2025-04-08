@@ -14,5 +14,6 @@ def start_speech_to_text(pipe):
                 recorder.start()
             if message == False:
                 recorder.stop()
-                print(recorder.text())
-                pipe.send(recorder.text())
+                recorded = recorder.text()
+                print(recorded)
+                pipe.send(recorded)
