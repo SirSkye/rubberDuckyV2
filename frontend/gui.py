@@ -128,6 +128,20 @@ class MainW(Tk):
             font=("Lohit Devanagari", 30 * -1)
         )
 
+        self.textboks = Text(
+            bd = 0,
+            bg = "#FFFFFF",
+            fg = "#FFFFFF",
+            highlightthickness=0
+        )
+
+        self.textboks.place(
+            x = 350,
+            y = 178.00,
+            width=388.0,
+            height=389.0
+        )
+
         def recorder_button():
             if self.recording == False:
                 self.pipe_to_recorder.send(True)
@@ -140,6 +154,10 @@ class MainW(Tk):
                 print("RECIEVED", message)
                 response = self.client.generate(model="rubberduck", prompt="Study guide: " + str(self.entry_1.get("1.0", END)) + " Student: " + message)
                 print(response)
+                self.textboks.delete("1.0",END)
+                self.textboks.insert(END, response.response)
+
+
 
                 
         self.button_image_1 = PhotoImage(
