@@ -5,6 +5,7 @@ import ollama
 from RealtimeSTT import AudioToTextRecorder
 from multiprocessing import Process, Pipe
 import multiprocessing as mp
+from ollamaModel import ollamaModel
 from speechtotext import start_speech_to_text
 
 class MainW(Tk):
@@ -16,18 +17,84 @@ class MainW(Tk):
         self.configure(bg = "#FFFFFF")    
         self.resizable(False, False)
         self.pipe_to_recorder, reciever = Pipe()
-        self.client = ollama.Client("localhost:11434")
+        self.pipe_to_ollama, ollama_reciever = Pipe()
+        self.client_process = Process(target=ollamaModel, args = (ollama_reciever,))
         self.recorder_process = Process(target=start_speech_to_text, args=(reciever,))
         self.recorder_process.start()
+        self.client_process.start()
         self.recording = False
-
+        self.waiting_for_speech = False
+        self.waiting_for_ollama = False
+        self.check_pipes()
 
     def relative_to_assets(self, path: str) -> Path:
         OUTPUT_PATH = Path(__file__).parent
-        ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\aisha\Tkinter-Designer\rachelsDesign\build\assets\frame0")
+        ASSETS_PATH = OUTPUT_PATH / Path(r"C:\Users\aisha\rubberDuckyV2\frontend\assets")
         return ASSETS_PATH / Path(path)
+    
+    def check_pipes(self):
+            if self.waiting_for_speech and self.pipe_to_recorder.poll():
+                self.waiting_for_speech = False
+                message = self.pipe_to_recorder.recv()
+                self.recording = False
+                
+                # Got speech, now send to Ollama
+                self.entry_1.delete("1.0", END)
+                self.entry_1.insert(END, "Ducky is thinking...")
+                prompt = "Study guide: " + str(self.entry_2.get("1.0", END)) + " Student: " + message
+                self.pipe_to_ollama.send(prompt)
+                self.waiting_for_ollama = True
+                
+            if self.waiting_for_ollama and self.pipe_to_ollama.poll():
+                self.waiting_for_ollama = False
+                response = self.pipe_to_ollama.recv()
+                self.entry_1.delete("1.0", END)
+                self.entry_1.insert(END, response)
+                self.button_1.config(state="normal")  # Re-enable button
+                
+            # Schedule the next check
+            self.after(100, self.check_pipes)
 
     def mainWidgets(self):
+        # def recorder_button():
+        #     if self.recording == False:
+        #         self.pipe_to_recorder.send(True)
+        #         self.recording = True
+        #     else:
+        #         self.pipe_to_recorder.send(False)
+        #         while not self.pipe_to_recorder.poll():
+        #             pass
+        #         message = self.pipe_to_recorder.recv()
+        #         print("RECIEVED", message)
+        #         self.entry_1.delete("1.0",END)
+        #         self.entry_1.insert(END, "Ducky is thinking...")
+        #         response = self.client.generate(model="rubberduck", prompt="Study guide: " + str(self.entry_2.get("1.0", END)) + " Student: " + message)
+        #         self.entry_1.delete("1.0",END)
+        #         self.entry_1.insert(END, response.response)
+        #         self.pipe_to_ollama.send("Study guide: " + str(self.entry_2.get("1.0", END)) + " Student: " + message)
+        #         while not self.pipe_to_ollama.poll():
+        #             pass
+        #         message = self.pipe_to_ollama.recv()
+        #         self.entry_1.delete("1.0",END)
+        #         self.entry_1.insert(END, message)
+
+        def recorder_button():
+            if not self.recording:
+                # Start recording
+                self.pipe_to_recorder.send(True)
+                self.recording = True
+                self.waiting_for_speech = True
+                self.entry_1.delete("1.0", END)
+                self.entry_1.insert(END, "Listening...")
+            else:
+                # Stop recording and wait for result
+                self.pipe_to_recorder.send(False)
+                self.waiting_for_speech = True
+                self.button_1.config(state="disabled")  # Disable button while processing
+                self.entry_1.delete("1.0", END)
+                self.entry_1.insert(END, "Ducky is thinking...")
+
+
         canvas = Canvas(
             self,
             bg = "#FFFFFF",
@@ -39,37 +106,61 @@ class MainW(Tk):
         )
 
         canvas.place(x = 0, y = 0)
-        canvas.create_rectangle(
-            451.0,
-            178.0,
-            863.0,
-            569.0,
-            fill="#D9D9D9",
-            outline="")
+        self.image_image_1 = PhotoImage(
+            file=self.relative_to_assets("image_1.png"))
+        image_1 = canvas.create_image(
+            445.0,
+            445.0,
+            image=self.image_image_1
+        )
 
-        canvas.create_rectangle(
-            25.0,
-            178.0,
-            437.0,
-            569.0,
-            fill="#FFFFFF",
-            outline="")
+        self.entry_image_1 = PhotoImage(
+            file=self.relative_to_assets("entry_1.png"))
+        entry_bg_1 = canvas.create_image(
+            735.0,
+            350.5,
+            image=self.entry_image_1
+        )
+        self.entry_1 = Text(
+            bd=0,
+            bg="#D9D9D9",
+            fg="#000716",
+            highlightthickness=0
+        )
+        self.entry_1.place(
+            x=619.0,
+            y=178.0,
+            width=232.0,
+            height=343.0
+        )
 
-        canvas.create_rectangle(
-            37.0,
-            16.0,
-            853.0,
-            95.0,
-            fill="#000000",
-            outline="")
+        self.entry_image_2 = PhotoImage(
+            file=self.relative_to_assets("entry_2.png"))
+        entry_bg_2 = canvas.create_image(
+            153.0,
+            350.5,
+            image=self.entry_image_2
+        )
+        self.entry_2 = Text(
+            bd=0,
+            bg="#000000",
+            fg="#FFFFFF",
+            highlightthickness=0
+        )
+        self.entry_2.place(
+            x=37.0,
+            y=178.0,
+            width=232.0,
+            height=343.0
+        )
 
         canvas.create_text(
-            375.0,
-            0.0,
+            271.0,
+            15.0,
             anchor="nw",
-            text="Duck",
+            text="Study Ducky",
             fill="#FFFFFF",
-            font=("Lohit Devanagari", 60 * -1)
+            font=("LondrinaSketch Regular", 70 * -1)
         )
 
         canvas.create_text(
@@ -81,23 +172,10 @@ class MainW(Tk):
             font=("Inter", 12 * -1)
         )
 
-        self.entry_1 = Text(
-            bd = 0,
-            bg = "#FFFFFF",
-            fg = "#FFFFFF",
-            highlightthickness=0
-        )
-        self.entry_1.place(
-            x = 37.00,
-            y = 178.00,
-            width=388.0,
-            height=389.0
-        )
-
         canvas.create_rectangle(
-            33.0,
+            24.0,
             113.0,
-            346.0,
+            337.0,
             162.0,
             fill="#000000",
             outline="")
@@ -114,7 +192,7 @@ class MainW(Tk):
             573.0,
             113.0,
             anchor="nw",
-            text="Duck Feedback",
+            text=" FeedDuck",
             fill="#000000",
             font=("Lohit Devanagari", 30 * -1)
         )
@@ -123,59 +201,26 @@ class MainW(Tk):
             47.0,
             113.0,
             anchor="nw",
-            text="Study Material",
+            text="Studucky Material",
             fill="#FFFFFF",
             font=("Lohit Devanagari", 30 * -1)
         )
 
-        self.textboks = Text(
-            bd = 0,
-            bg = "#FFFFFF",
-            fg = "#FFFFFF",
-            highlightthickness=0
-        )
-
-        self.textboks.place(
-            x = 350,
-            y = 178.00,
-            width=388.0,
-            height=389.0
-        )
-
-        def recorder_button():
-            if self.recording == False:
-                self.pipe_to_recorder.send(True)
-                self.recording = True
-            else:
-                self.pipe_to_recorder.send(False)
-                while not self.pipe_to_recorder.poll():
-                    pass
-                message = self.pipe_to_recorder.recv()
-                print("RECIEVED", message)
-                response = self.client.generate(model="rubberduck", prompt="Study guide: " + str(self.entry_1.get("1.0", END)) + " Student: " + message)
-                print(response)
-                self.textboks.delete("1.0",END)
-                self.textboks.insert(END, response.response)
-
-
-
-                
         self.button_image_1 = PhotoImage(
             file=self.relative_to_assets("button_1.png"))
-        recorder_button = Button(
+        self.button_1 = Button(
             image=self.button_image_1,
             borderwidth=0,
             highlightthickness=0,
             command=recorder_button,
             relief="flat"
         )
-        recorder_button.place(
-            x=360.0,
-            y=110.0,
-            width=59.0,
-            height=59.0
+        self.button_1.place(
+            x=314.0,
+            y=193.0,
+            width=281.0,
+            height=305.0
         )
-        recorder_button.lift()
 
 if __name__ == "__main__":
     gui = MainW(None)
