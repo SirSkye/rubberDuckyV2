@@ -1,24 +1,18 @@
 from RealtimeSTT import AudioToTextRecorder
-from multiprocessing import Pipe
 
-class SpeechToText():
-    def __init__(self, pipe_conn):
-        self.recorder = AudioToTextRecorder()
-        self.can_record = False
-        self.pipe:bool = pipe_conn
-        self.pipeSend:str = pipe_conn
+def start_speech_to_text(pipe):
+    recorder = AudioToTextRecorder()
+    can_record = False
+    print("RAN")
 
-    
-    def main(self):
-        while True:
-            message = self.pipe.recv()
-            if(message == True):
-                if(self.can_record):
-                    self.can_record = False
-                    self.recorder.start()
-            if(message == False):
-                    self.recorder.stop()
-                    self.pipeSend.send(self.recorder.text())
-                    self.can_record = True
-
-
+    while True:
+        if pipe.poll():
+            print("Polling")
+            message = pipe.recv()
+            print(message)
+            if message == True:
+                recorder.start()
+            if message == False:
+                recorder.stop()
+                print(recorder.text())
+                pipe.send(recorder.text())

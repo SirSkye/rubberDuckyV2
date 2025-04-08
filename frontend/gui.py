@@ -3,6 +3,9 @@ from pathlib import Path
 from tkinter import Tk, Canvas, Entry, Text, Button, PhotoImage
 import ollama
 from RealtimeSTT import AudioToTextRecorder
+from multiprocessing import Process, Pipe
+import multiprocessing as mp
+from speechtotext import start_speech_to_text
 
 class MainW(Tk):
     def __init__(self, parent):
@@ -12,8 +15,12 @@ class MainW(Tk):
         self.geometry("890x600")
         self.configure(bg = "#FFFFFF")    
         self.resizable(False, False)
-        # self.recorder = AudioToTextRecorder()
+        self.pipe_to_recorder, reciever = Pipe()
         # self.client = ollama.Client()
+        self.recorder_process = Process(target=start_speech_to_text, args=(reciever,))
+        self.recorder_process.start()
+        self.recording = False
+
 
     def relative_to_assets(self, path: str) -> Path:
         OUTPUT_PATH = Path(__file__).parent
@@ -108,23 +115,30 @@ class MainW(Tk):
             font=("Lohit Devanagari", 30 * -1)
         )
 
+        def recorder_button():
+            if self.recording == False:
+                self.pipe_to_recorder.send(True)
+                self.recording = True
+            else:
+                self.pipe_to_recorder.send(False)
         self.button_image_1 = PhotoImage(
             file=self.relative_to_assets("button_1.png"))
-        button_1 = Button(
+        recorder_button = Button(
             image=self.button_image_1,
             borderwidth=0,
             highlightthickness=0,
-            command=lambda: print("button_1 clicked"),
+            command=recorder_button,
             relief="flat"
         )
-        button_1.place(
+        recorder_button.place(
             x=360.0,
             y=110.0,
             width=59.0,
             height=59.0
         )
-        button_1.lift()
+        recorder_button.lift()
 
-gui = MainW(None)
-print("MAINLOPPP")
-gui.mainloop()
+if __name__ == "__main__":
+    gui = MainW(None)
+    
+    gui.mainloop()
