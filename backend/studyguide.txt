@@ -1,0 +1,9 @@
+Organic Compounds
+A molecular compound of carbon, not including CO(g), CO2(g), and  HCN(g).
+Since carbon has 4 valence electrons, its atoms tend to form 4 covalent bonds.
+Carbon atoms often bond with one another to form chains. 
+These chain structures become the backbones of a range of molecules, some of them very complex.
+Carbon-based molecules are the building blocks for life on Earth.
+
+Alkanes 
+A hydrocarbon is a compound that is composed only of carbon and hydrogen atoms. A saturated hydrocarbon, also known as an alkane, is a hydrocarbon in which all bonds between the carbon atoms are single bonds.
